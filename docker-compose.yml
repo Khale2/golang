@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # The Protected Application Server (Go Mockup API)
+  app:
+    build: .
+    container_name: mockup-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - wallarm-net
+    # No ports exposed directly, traffic must go through Wallarm node
+
+  # The Wallarm Filtering Node (Reverse Proxy)
+  wallarm-node:
+    image: wallarm/node
+    container_name: wallarm-node
+    ports:
+      - "80:80"
+    environment:
+      - WALLARM_API_TOKEN=RdSypCfQkPSSBXPXHHxZb/Gg08OJ3H89/Xe9tdTge3eGHGsz6KlO/5l88Da4THiM
+      - WALLARM_API_HOST=api.wallarm.com
+      - DEPLOY_FORCE=true
+    volumes:
+      - ./wallarm/default.conf:/etc/nginx/http.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - wallarm-net
+
+networks:
+  wallarm-net:
+    driver: bridge
